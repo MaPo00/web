@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Registration</title>
+</head>
+<body>
+  <%- include('headers') %>
+  <h2>Device Registration</h2>
+  <form id="registrationForm" >
+    <label for="deviceName">Device Name:</label>
+    <input type="text" id="deviceName" name="device_name" required><br>
+
+    <label for="description">Description:</label>
+    <textarea id="description" name="description" required></textarea><br>
+
+    <label for="serialNumber">Serial Number:</label>
+    <input type="text" id="serialNumber" name="serial_number" required><br>
+
+    <label for="manufacturer">Manufacturer:</label>
+    <input type="text" id="manufacturer" name="manufacturer" required><br>
+
+    <label for="image">Image:</label>
+    <input type="file" id="image" name="image" accept="image/*" required><br>
+
+    <button type="submit">Register</button>
+  </form>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+  const registrationForm = document.getElementById('registrationForm');
+
+  registrationForm.addEventListener('submit', async (event) => {
+    event.preventDefault(); 
+    const formData = new FormData(registrationForm);
+
+    try {
+      const response = await fetch('/devices/register', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error registering device. Status: ${response.status}`);
+      }
+      const data = await response.json();
+      alert(data.message);
+      location.reload();
+    } catch (error) {
+      alert(error)
+    }
+  });
+});
+</script>
+</body>
+</html>

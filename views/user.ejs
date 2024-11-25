@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Page</title>
+</head>
+<body>
+    <%- include('headers') %>
+    <h2>Привіт, <%= name %>!</h2>
+    <p>Сторінка користувача.</p>
+
+    <div id="availableDevices">
+      <h2>Доступні пристрої</h2>
+    </div>
+
+    <div id="inUseDevices">
+      <h2>Ваші пристрої </h2>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', async () => {
+        try {
+          const response = await fetch('/userInfo');
+          const data = await response.json();
+
+          if (response.ok) {
+            displayDevices(data.devices, 'availableDevices');
+            displayDevices(data.inUseDevices, 'inUseDevices');
+          } 
+        } catch (error) {
+          console.error('Error fetching user data:', error.message);
+        }
+      });
+
+      function displayDevices(devices, containerId) {
+        const container = document.getElementById(containerId);
+        if (devices && devices.length > 0) {
+          const ul = document.createElement('ul');
+
+          devices.forEach(device => {
+            const li = document.createElement('li');
+            li.textContent = `${device.id} : ${device.device_name} - ${device.serial_number}`;
+            li.style.marginBottom = '10px';
+            if (containerId === 'availableDevices' && !device.user_id) {
+              const button = document.createElement('button');
+              button.textContent = 'Take';
+              button.onclick = () => takeDevice(device.id);
+              li.appendChild(button);
+            } else if (containerId === 'inUseDevices') {
+              const button = document.createElement('button');
+              button.textContent = 'Return';
+              button.onclick = () => returnDevice(device.id);
+              li.appendChild(button);
+            }
+
+            ul.appendChild(li);
+          });
+
+          container.appendChild(ul);
+        } else {
+          const p = document.createElement('p');
+          p.textContent = `Немає ${containerId === 'availableDevices' ? 'доступних' : 'у вашому користуванні'} пристроїв.`;
+          container.appendChild(p);
+        }
+      }
+
+      async function takeDevice(deviceId) {
+      try {
+        const response = await fetch('/user/devices/take', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ deviceId }),
+        });
+
+        if (response.ok) return location.reload();
+
+      } catch (error) {
+        console.error('Error taking device:', error.message);
+      }
+    }
+
+      async function returnDevice(deviceId) {
+        try {
+          const response = await fetch(`/user/devices/return`, {
+            method: 'put',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ deviceId }),
+          });
+
+          if (response.ok) return location.reload();
+
+        } catch (error) {
+          console.error('Error returning device:', error.message);
+        }
+      }
+    </script>
+</body>
+</html>

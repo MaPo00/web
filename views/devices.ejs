@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device List</title>
+</head>
+<body>
+  <%- include('headers') %>
+  <h2>Device List</h2>
+  <ul id="devicesContainer" style="list-style-type:none; padding: 0; margin: 0"></ul>
+  <div id="container">
+  <div id="detailsContainer" style="display: none;">
+  </div>
+
+  <div id="editModal" style="display: none;">
+    <h3 id="editDeviceIdHeading">Редагування інформації про пристрій</h3>
+    <form id="editForm">
+      <label for="deviceName">Ім’я пристрою:</label>
+      <input type="text" id="deviceName" name="deviceName" required>
+      <br>
+      <label for="description">Опис:</label>
+      <input type="text" id="description" name="description" required>
+      <br>
+      <label for="serialNumber">Серійний номер:</label>
+      <input type="text" id="serialNumber" name="serialNumber" required>
+      <br>
+      <label for="manufacturer">Виробник:</label>
+      <input type="text" id="manufacturer" name="manufacturer" required>
+      <br>
+      <button type="button" onclick="performEditDevice()">Зберегти зміни</button>
+      <br>
+      <button type="button" onclick="closeContainer('editModal')">Закрити</button>
+    </form>
+  </div>
+  </div>
+
+  <script>
+    let editingDeviceId;
+
+    function showDetails(deviceId) {
+      const detailsContainer = document.getElementById('detailsContainer');
+ 
+      fetch(`/devices/${deviceId}/details`)
+        .then(response => response.json())
+        .then(data => {
+          detailsContainer.innerHTML = template(data);
+          detailsContainer.style.display = 'block';
+        })
+        .catch(error => console.error('Error fetching device details:', error));
+    }
+
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      const binaryString = bytes.reduce((accumulator, byte) => accumulator + String.fromCharCode(byte), '');
+      return btoa(binaryString);
+    }
+
+    function template(device) {
+      if (device.image && device.image.type === 'Buffer' && Array.isArray(device.image.data)) {
+        const imageBase64 = arrayBufferToBase64(device.image.data);
+
+        return `
+          <p>ID: ${device.id}</p>
+          <p>Device Name: ${device.device_name}</p>
+          <p>Description: ${device.description}</p>
+          <p>Serial Number: ${device.serial_number}</p>
+          <p>Manufacturer: ${device.manufacturer}</p>
+          <img style="max-width: 300px; max-height: 200px;" src="data:image/jpeg;base64,${imageBase64}" alt="${device.device_name} Image">
+          <br>
+          <button type="button" onclick="closeContainer('detailsContainer')">Закрити</button>
+        `;
+      } else {
+        console.error('Invalid image data:', device.image);
+        return 'Invalid image data';
+      }
+    }
+
+    function closeContainer(containerId) {
+      const container = document.getElementById(containerId);
+      container.style.display = 'none';
+    }
+
+    function createDeviceItem(device) {
+      const deviceItem = document.createElement('li');
+      deviceItem.classList.add('device-item');
+
+      deviceItem.innerHTML = `
+        ${device.id} : ${device.device_name} - ${device.owner_name ? `Owner ${device.owner_name}` : 'No Owner'}
+        <div class="device-actions">
+          <button onclick="editDeviceForm('${device.id}')">Редагувати</button>
+          <button onclick="deleteDevice('${device.id}')">Видалити</button>
+          <button onclick="showDetails('${device.id}')">Деталі</button>
+        </div>
+        <div id="details_${device.id}" style="display: block;"></div>
+      `;
+
+      return deviceItem;
+    }
+
+    function displayDevices(devices) {
+      const devicesContainer = document.getElementById('devicesContainer');
+      devicesContainer.innerHTML = '';
+      devices.forEach(device => {
+        const deviceItem = createDeviceItem(device);
+        devicesContainer.appendChild(deviceItem);
+      });
+    }
+
+    function editDeviceForm(deviceId) {
+      editingDeviceId = deviceId;
+      fetch(`/devices/${deviceId}/edit`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Error fetching device details. Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          document.getElementById('editDeviceIdHeading').innerText = `Редагування інформації про пристрій: ID - ${data.device.id}`;
+          document.getElementById('deviceName').value = data.device.device_name;
+          document.getElementById('description').value = data.device.description;
+          document.getElementById('serialNumber').value = data.device.serial_number;
+          document.getElementById('manufacturer').value = data.device.manufacturer;
+          document.getElementById('editModal').style.display = 'block';
+        })
+        .catch(error => {
+          console.error('Error fetching device details for editing:', error.message);
+        });
+    }
+
+      function performEditDevice() {
+        const form = document.getElementById('editForm');
+        const formData = new FormData(form);
+
+        const formDataObject = {};
+        formData.forEach((value, key) => {
+          formDataObject[key] = value;
+        });
+
+        if (Object.values(formDataObject).some(value => value.trim() === '')) {
+          alert('Будь ласка, заповніть всі поля форми.');
+          return;
+        }
+
+        fetch(`/devices/${editingDeviceId}/edit`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formDataObject),
+          })
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById('editModal').style.display = 'none';
+            alert(data.message);
+            location.reload();
+          })
+          .catch(error => {
+            console.error('Error editing device:', error);
+          });
+      }
+
+      async function deleteDevice(deviceId) {
+        if (confirm('Ви впевнені, що хочете видалити цей пристрій?')) {
+          try {
+            const response = await fetch(`/devices/${deviceId}/delete`, {
+              method: 'DELETE',
+            });
+
+            if (!response.ok) {
+              throw new Error(`Error deleting device. Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            alert(data.message);
+            location.reload();
+          } catch (error) {
+            alert('Error deleting device:', error.message);
+          }
+        }
+      }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('/devicesInfo')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Error fetching devices. Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          displayDevices(data);
+        })
+        .catch(error => {
+          console.error('Error fetching devices:', error);
+        });
+    });
+
+  </script>
+</body>
+</html>

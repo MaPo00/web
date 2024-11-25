@@ -1,0 +1,465 @@
+openapi: 3.0.0
+info:
+  title: Inventory API
+  version: 1.0.0
+  description: API for managing inventory devices and history
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: User
+    description: Operations related to user management
+  - name: Devices
+    description: Operations related to inventory devices
+  - name: DeviceHistory
+    description: Operations related to device usage history
+
+paths:
+  /user:
+    get:
+      summary: Get information about a user
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              example:
+                message: 'User information retrieved successfully'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+    post:
+      summary: Register a new device
+      tags:
+        - User
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - device_name
+                - description
+                - serial_number
+                - manufacturer
+                - image
+              properties:
+                device_name:
+                  type: string
+                description:
+                  type: string
+                serial_number:
+                  type: string
+                manufacturer:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Device successfully registered
+          content:
+            application/json:
+              example:
+                message: 'Пристрій успішно зареєстровано'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              example:
+                message: 'Усі поля повинні бути заповнені'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+
+  /devices/{id}/details:
+    get:
+      summary: Get details of a specific device
+      tags:
+        - Devices
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Device ID
+      responses:
+        '200':
+          description: Details of the device
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  device_name:
+                    type: string
+                  description:
+                    type: string
+                  serial_number:
+                    type: string
+                  manufacturer:
+                    type: string
+                required:
+                  - id
+                  - device_name
+                  - serial_number
+                  - manufacturer
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+  /devicesInfo:
+    get:
+      summary: Get information about all devices
+      tags:
+        - Devices
+      responses:
+        '200':
+          description: List of devices
+          content:
+            application/json:
+              example:
+                - id: 1
+                  device_name: "Device 1"
+                  serial_number: "SN001"
+                  owner_name: "Owner 1"
+                - id: 2
+                  device_name: "Device 2"
+                  serial_number: "SN002"
+                  owner_name: "Owner 2"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                message: Internal Server Error  
+  /devices/{id}/edit:
+    get:
+      summary: Get information for editing a device
+      tags:
+        - Devices
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Device ID
+      responses:
+        '200':
+          description: Device information for editing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      device_name:
+                        type: string
+                      description:
+                        type: string
+                      serial_number:
+                        type: string
+                      manufacturer:
+                        type: string
+                required:
+                  - device
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+    put:
+      summary: Update device information
+      tags:
+        - Devices
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Device ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deviceName:
+                  type: string
+                description:
+                  type: string
+                serialNumber:
+                  type: string
+                manufacturer:
+                  type: string
+      responses:
+        '200':
+          description: Device successfully updated
+          content:
+            application/json:
+              example:
+                message: 'Пристрій успішно оновлено'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+  /devices/{id}/delete:
+    delete:
+      summary: Delete a device
+      tags:
+        - Devices
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Device ID
+      responses:
+        '200':
+          description: Device successfully deleted
+          content:
+            application/json:
+              example:
+                message: 'Пристрій успішно видалено'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+
+  /device/history:
+    get:
+      summary: Get device usage history
+      tags:
+        - DeviceHistory
+      responses:
+        '200':
+          description: Device usage history
+          content:
+            application/json:
+              example:
+                history:
+                  - user_id: 1
+                    user_name: "User 1"
+                    device_id: 1
+                    device_name: "Device 1"
+                    taken_date: "2023-01-01"
+                    returned_date: "2023-01-10"
+                  - user_id: 2
+                    user_name: "User 2"
+                    device_id: 2
+                    device_name: "Device 2"
+                    taken_date: "2023-02-01"
+                    returned_date: null
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+  /user/logout:
+    get:
+      summary: Logout user
+      tags:
+        - User
+      responses:
+        '302':
+          description: User successfully logged out
+  /user/register:
+    get:
+      summary: Render user registration page
+      tags:
+        - User
+      responses:
+        '200':
+          description: User registration page rendered successfully
+    post:
+      summary: Register a new user
+      tags:
+        - User
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                name:
+                  type: string
+                password:
+                  type: string
+              required:
+                - email
+                - name
+                - password
+      responses:
+        '200':
+          description: User successfully registered
+        '400':
+          description: User with this email already exists
+        '500':
+          description: Internal Server Error
+  /login:
+    get:
+      summary: Render login page
+      tags:
+        - User
+      responses:
+        '200':
+          description: Login page rendered successfully
+    post:
+      summary: Log in user
+      tags:
+        - User
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        '302':
+          description: User successfully logged in
+        '401':
+          description: Incorrect login credentials
+        '500':
+          description: Internal Server Error
+
+  /userInfo:
+    get:
+      summary: Get user information
+      tags:
+        - User
+      responses:
+        '200':
+          description: User information retrieved successfully
+        '500':
+          description: Internal Server Error
+  /user/devices/take:
+    post:
+      summary: Take a device
+      tags:
+        - User
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                deviceId:
+                  type: string
+              required:
+                - deviceId
+      responses:
+        '302':
+          description: Device successfully taken
+        '500':
+          description: Internal Server Error
+  /user/devices/return:
+    put:
+      summary: Return a device
+      tags:
+        - User
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                deviceId:
+                  type: string
+              required:
+                - deviceId
+      responses:
+        '200':
+          description: Device successfully returned
+        '500':
+          description: Internal Server Error 
+  /devices/register:
+    get:
+      summary: Render device registration page
+      tags:
+        - Devices
+      responses:
+        '200':
+          description: Device registration page rendered successfully
+    post:
+      summary: Register a new device
+      tags:
+        - Devices
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - device_name
+                - description
+                - serial_number
+                - manufacturer
+                - image
+              properties:
+                device_name:
+                  type: string
+                description:
+                  type: string
+                serial_number:
+                  type: string
+                manufacturer:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Device successfully registered
+          content:
+            application/json:
+              example:
+                message: 'Пристрій успішно зареєстровано'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              example:
+                message: 'Усі поля повинні бути заповнені'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
